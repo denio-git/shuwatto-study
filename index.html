@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>シュワっとstudy</title>
+  <link rel="stylesheet" href="https://unpkg.com/ress/dist/ress.min.css">
+  <link href="https://fonts.googleapis.com/css?family=Philosopher" rel="stylesheet">
+  <link href="https://use.fontawesome.com/releases/v6.7.2/css/all.css" rel="stylesheet">
+  <style>
+    /* 変数の定義：ロゴの色をベースに */
+    :root {
+      --primary-pink: #FF97C2;
+      --soft-pink: #FFEEFF;
+      --text-gray: #555;
+    }
+
+    body { 
+      padding: 10px; 
+      text-align: center; 
+      font-family: 'Philosopher', sans-serif; 
+      color: var(--text-gray);
+    }
+
+    .container { 
+      display: flex; 
+      flex-direction: column; 
+      padding: 20px; 
+      width: 100%;
+      max-width: 350px; 
+      background: var(--soft-pink); 
+      margin: 20px auto;
+      border-radius: 15px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+
+    .logo-area { margin-bottom: 15px; }
+    .logo-area img { width: 60%; max-width: 200px; }
+
+    #movie-player { 
+      width: 100%; 
+      border-radius: 10px;
+      margin-top: 10px; 
+      /*background: #000;*/
+    }
+
+    .button-group { 
+      display: flex; 
+      justify-content: space-around; 
+      align-items: center; 
+      margin-top: 20px;
+    }
+
+    /* ボタンデザインの統一 */
+    .btn {
+      color: white;
+      height: 3rem; 
+      width: 3rem; 
+      cursor: pointer;
+      border: none; 
+      background: var(--primary-pink);
+      border-radius: 50%; 
+      font-size: 1.2rem;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      transition: transform 0.1s;
+    }
+    .btn:active { transform: scale(0.95); }
+    .btn:disabled { background: #ccc; cursor: not-allowed; }
+
+    /* ファイル選択ラベルをボタン風に */
+    #file-label {
+      display: inline-block;
+      background: var(--primary-pink);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 25px;
+      cursor: pointer;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+      margin-bottom: 15px;
+      font-weight: bold;
+    }
+    input[type="file"] { display: none; }
+
+    #answer-text { 
+      font-size: 1.1rem; 
+      font-weight: bold;
+      width: 120px;
+      word-wrap: break-word;
+    }
+
+    .progress-area { margin-top: 15px; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="logo-area" id="logo-container">
+      <img src="img/IMG_logo.png" alt="シュワっとstudy ロゴ">
+    </div>
+
+    <div id="setup-area">
+      <label id="file-label">
+        <i class="fa-solid fa-file-video"></i> 問題ファイル選択
+        <input type="file" id="file-input" multiple accept="video/*">
+      </label>
+    </div>
+
+    <video id="movie-player" playsinline autoplay muted style="display: none;"></video>
+
+    <div class="button-group" id="control-panel" style="display: none;">
+      <div style="width: 3rem;">
+        <button id="btn-toggle-answer" class="btn"><i class="fa-solid fa-eye" style="font-size: 1.5rem;"></i></button>
+        <button id="btn-back" class="btn" style="display: none;"><i class="fa-solid fa-rotate-left"></i></button>
+      </div>
+
+      <span id="answer-text">準備中...</span>
+
+      <button id="btn-play-pause" class="btn">
+        <i id="icon-play" class="fa-solid fa-play" style="display: none;"></i>
+        <i id="icon-pause" class="fa-solid fa-pause"></i>
+      </button>
+    </div>
+
+    <div class="progress-area" id="progress-container" style="display: none;">
+      <p id="progress-text"></p>
+    </div>
+  </div>
+
+<script>
+/**
+ * アプリの状態管理
+ */
+const state = {
+  files: [],
+  playOrder: [],
+  currentIndex: 0,
+  isAnswerVisible: true,
+};
+
+// DOM要素
+const el = {
+  logo: document.getElementById('logo-container'),
+  setup: document.getElementById('setup-area'),
+  controls: document.getElementById('control-panel'),
+  progressArea: document.getElementById('progress-container'),
+  fileInput: document.getElementById('file-input'),
+  player: document.getElementById('movie-player'),
+  btnAnswer: document.getElementById('btn-toggle-answer'),
+  btnBack: document.getElementById('btn-back'),
+  btnPlayPause: document.getElementById('btn-play-pause'),
+  txtAnswer: document.getElementById('answer-text'),
+  txtProgress: document.getElementById('progress-text'),
+  iconPlay: document.getElementById('icon-play'),
+  iconPause: document.getElementById('icon-pause'),
+};
+
+/**
+ * 初期設定：ファイル読み込み
+ */
+el.fileInput.addEventListener('change', (e) => {
+  const selectedFiles = Array.from(e.target.files);
+  if (selectedFiles.length === 0) return;
+
+  // メモリ解放
+  state.files.forEach(f => URL.revokeObjectURL(f.url));
+
+  state.files = selectedFiles.map(f => ({
+    name: f.name.replace(/\.[^/.]+$/, ""), // 拡張子削除
+    url: URL.createObjectURL(f)
+  }));
+
+  // 再生順の生成
+  const indices = [...Array(state.files.length).keys()];
+  for (let i = indices.length - 1; i > 0; i--) {
+    const r = Math.floor(Math.random() * (i + 1));
+    [indices[i], indices[r]] = [indices[r], indices[i]];
+  }
+  state.playOrder = indices.flatMap(i => [i, i]);
+  
+  state.currentIndex = 0;
+  startApp();
+});
+
+// startApp関数の中身を少し修正
+function startApp() {
+  el.player.style.display = 'block';
+  el.controls.style.display = 'flex';
+  el.progressArea.style.display = 'block';
+  el.setup.style.display = 'none';
+  el.logo.style.display = 'none';
+  //el.player.muted = true; // 明示的にミュートにする（手話なので音は不要ですよね）
+  playVideo();
+}
+
+/**
+ * 動画再生コアロジック
+ */
+ 
+function playVideo() {
+  const fileIdx = state.playOrder[state.currentIndex];
+  el.player.src = state.files[fileIdx].url;
+  
+  // 動画の準備ができたら再生を開始する
+  el.player.oncanplay = () => {
+    el.player.play().catch(error => {
+      console.log("自動再生がブロックされました:", error);
+      updateUI(); // ブロックされた場合もUIを更新して、再生ボタンを押せる状態にする
+    });
+    updateUI();
+    // 一度設定したら削除（次の動画再生で重複しないように）
+    el.player.oncanplay = null;
+  };
+}
+
+function updateUI() {
+  const currentProbNum = Math.floor(state.currentIndex / 2) + 1;
+  el.txtProgress.textContent = `問題 ${currentProbNum} ／ ${state.files.length}`;
+
+  const isSecondTime = state.currentIndex % 2 === 1;
+  const fileIdx = state.playOrder[state.currentIndex];
+
+  if (isSecondTime && state.isAnswerVisible) {
+    el.txtAnswer.textContent = state.files[fileIdx].name;
+  } else {
+    el.txtAnswer.textContent = "？？？";
+  }
+
+  // 再生状態に合わせてアイコンを更新
+  const isPaused = el.player.paused;
+  el.iconPlay.style.display = isPaused ? 'inline' : 'none';
+  el.iconPause.style.display = isPaused ? 'none' : 'inline';
+  
+  // 停止中のみ「戻る」ボタンを表示
+  el.btnBack.style.display = isPaused ? 'flex' : 'none';
+  el.btnAnswer.style.display = isPaused ? 'none' : 'flex';
+}
+
+/**
+ * イベントリスナー
+ */
+el.player.addEventListener('ended', () => {
+  state.currentIndex++;
+  if (state.currentIndex >= state.playOrder.length) {
+    state.currentIndex = 0; // ループ
+  }
+  playVideo();
+});
+
+el.btnPlayPause.addEventListener('click', () => {
+  if (el.player.paused) {
+    el.player.play();
+  } else {
+    el.player.pause();
+  }
+  updateUI();
+});
+
+el.btnAnswer.addEventListener('click', () => {
+  state.isAnswerVisible = !state.isAnswerVisible;
+  el.btnAnswer.innerHTML = state.isAnswerVisible 
+    ? '<i class="fa-solid fa-eye" style="font-size: 1.5rem;"></i>' 
+    : '<i class="fa-solid fa-eye-slash" style="font-size: 1.5rem;"></i>';
+  updateUI();
+});
+
+el.btnBack.addEventListener('click', () => {
+  // 2回連続再生なので、1つ前の問題に戻るには indexを -2（または-3）する必要がある
+  // 現在が1回目の途中なら-2、2回目の途中なら-3で、前のセットの最初に飛ぶ
+  const step = (state.currentIndex % 2 === 0) ? 2 : 3;
+  state.currentIndex = (state.currentIndex - step + state.playOrder.length) % state.playOrder.length;
+  
+  // 常に問題の「1回目」から開始するように調整
+  if (state.currentIndex % 2 !== 0) state.currentIndex--;
+  
+  playVideo();
+});
+</script>
+</body>
+</html>
