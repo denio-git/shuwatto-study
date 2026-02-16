@@ -1,6 +1,6 @@
 # 手話技能検定 学習支援ツール
 
-<img src="img_logo.png" width="30%">
+<img src="IMG_logo.png" width="30%">
 
 手話技能検定の動画問題を、ランダムに繰り返し学習するためのWebアプリケーションです。
 ## 概要
