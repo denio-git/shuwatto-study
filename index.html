@@ -107,10 +107,10 @@
         <input type="file" id="file-input" multiple accept="video/*">
       </label>
     </div>
-
-    <video id="movie-player" playsinline autoplay muted style="display: none;"></video>
-
-    <div class="button-group" id="control-panel" style="display: none;">
+    <div id="video-area">
+      <video id="movie-player" playsinline autoplay muted style="display: none;"></video>
+    </div>
+    <div class="button-group" id="control-panel" style="display: none; height: 5em;">
       <div style="width: 3rem;">
         <button id="btn-toggle-answer" class="btn"><i class="fa-solid fa-eye" style="font-size: 1.5rem;"></i></button>
         <button id="btn-back" class="btn" style="display: none;"><i class="fa-solid fa-rotate-left"></i></button>
@@ -155,6 +155,7 @@ const el = {
   txtProgress: document.getElementById('progress-text'),
   iconPlay: document.getElementById('icon-play'),
   iconPause: document.getElementById('icon-pause'),
+  areaVideo: document.getElementById('video-area'),
 };
 
 /**
@@ -171,6 +172,11 @@ el.fileInput.addEventListener('change', (e) => {
     name: f.name.replace(/\.[^/.]+$/, ""), // 拡張子削除
     url: URL.createObjectURL(f)
   }));
+  // 動画高さを固定
+  el.player.onloadedmetadata = () => {
+    // 動画読み込み後に高さを取得
+    el.areaVideo.style.height = el.player.offsetHeight + 10 + 'px';
+  };
 
   // 再生順の生成
   const indices = [...Array(state.files.length).keys()];
@@ -236,6 +242,7 @@ function updateUI() {
   // 停止中のみ「戻る」ボタンを表示
   el.btnBack.style.display = isPaused ? 'flex' : 'none';
   el.btnAnswer.style.display = isPaused ? 'none' : 'flex';
+  el.setup.style.display = isPaused ? 'inline' : 'none';
 }
 
 /**
