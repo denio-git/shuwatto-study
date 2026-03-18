@@ -79,7 +79,7 @@
       border-radius: 25px;
       cursor: pointer;
       box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-      margin-bottom: 15px;
+      /*margin-bottom: 15px;*/
       font-weight: bold;
     }
     input[type="file"] { display: none; }
@@ -102,7 +102,7 @@
       <img src="img/IMG_logo.png" alt="シュワっとstudy ロゴ">
     </div>
 
-    <div id="setup-area">
+    <div id="setup-area" style="min-height: 2.0rem;>
       <label id="file-label">
         <i class="fa-solid fa-file-video"></i> 問題ファイル選択
         <input type="file" id="file-input" multiple accept="video/*">
@@ -143,8 +143,9 @@ const state = {
 
 // DOM要素
 const el = {
+  fileLabel: document.getElementById('file-label'),
   logo: document.getElementById('logo-container'),
-  setup: document.getElementById('setup-area'),
+  //setup: document.getElementById('setup-area'),
   controls: document.getElementById('control-panel'),
   progressArea: document.getElementById('progress-container'),
   fileInput: document.getElementById('file-input'),
@@ -196,7 +197,7 @@ function startApp() {
   el.player.style.display = 'block';
   el.controls.style.display = 'flex';
   el.progressArea.style.display = 'block';
-  el.setup.style.display = 'none';
+  el.fileLabel.style.display = 'none';
   el.logo.style.display = 'none';
   //el.player.muted = true; // 明示的にミュートにする（手話なので音は不要ですよね）
   playVideo();
@@ -243,7 +244,7 @@ function updateUI() {
   // 停止中のみ「戻る」ボタンを表示
   el.btnBack.style.display = isPaused ? 'flex' : 'none';
   el.btnAnswer.style.display = isPaused ? 'none' : 'flex';
-  el.setup.style.display = isPaused ? 'inline' : 'none';
+  el.fileLabel.style.display = isPaused ? 'inline' : 'none';
 }
 
 /**
