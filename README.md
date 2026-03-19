@@ -41,3 +41,7 @@
 ## 問題作成の参考
 1. 撮影した動画の前後の不要な部分は、iMovie等の編集アプリでカットする。
 2. 編集後のファイルを更に、動画圧縮アプリで容量を軽くする。
+
+## License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
